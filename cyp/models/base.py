@@ -473,7 +473,7 @@ class ModelBase:
         EarlyStopping_train = []
         EarlyStopping_val = []
 
-        for epoch in range(num_epochs):
+        for epoch in tqdm(range(num_epochs)):
             self.model.train()
 
             if epoch > 1:
@@ -486,7 +486,8 @@ class ModelBase:
             # information
             running_train_scores = defaultdict(list)
 
-            for train_x, train_y in tqdm(train_dataloader):
+            # for train_x, train_y in tqdm(train_dataloader):
+            for train_x, train_y in train_dataloader:
                 optimizer.zero_grad()
                 pred_y = self.model(train_x)
 
@@ -514,10 +515,8 @@ class ModelBase:
             running_val_scores = defaultdict(list)
             self.model.eval()
             with torch.no_grad():
-                for (
-                    val_x,
-                    val_y,
-                ) in tqdm(val_dataloader):
+                # for(val_x, val_y,) in tqdm(val_dataloader):
+                for(val_x, val_y,) in val_dataloader:
                     val_pred_y = self.model(val_x)
 
                     val_loss, running_val_scores = l1_l2_loss(
@@ -535,8 +534,8 @@ class ModelBase:
             l1vl2_train = round( np.array(running_train_scores['l2']).mean() / np.array(running_train_scores['l1']).mean(), 5)
             l1vl2_val   = round( np.array(running_val_scores['l2']).mean() / np.array(running_val_scores['l1']).mean(), 5)
 
-            pprint("{}:TRAINING: {}, {}, {}".format(epoch , ", ".join(train_output_strings), l1vl2_train, optimizer.param_groups[0]['lr']))
-            pprint("{}:VALIDATION: {}, {}".format(epoch, ", ".join(val_output_strings), l1vl2_val))
+            # pprint("{}:TRAINING: {}, {}, {}".format(epoch , ", ".join(train_output_strings), l1vl2_train, optimizer.param_groups[0]['lr']))
+            # pprint("{}:VALIDATION: {}, {}".format(epoch, ", ".join(val_output_strings), l1vl2_val))
 
             # print('qqq : ', train_output_strings)
 
