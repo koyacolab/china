@@ -549,7 +549,7 @@ class ModelBase:
             # print('qaqaqaqa : ', running_train_scores.keys(), np.array(running_train_scores['l2']).mean())
             # fn
 
-            if len(EarlyStopping_train) > 20: 
+            if len(EarlyStopping_train) > 2000: 
               ES_train = round( sum(EarlyStopping_train[epoch-20:-1])/20, 3 )
               ES_val = round( sum(EarlyStopping_val[epoch-20:-1])/20, 3)
               pprint('Step:{}, Epoch:{}, LR:{}, ES_train:{}, ES_val:{}'.format(step_number, epoch, optimizer.param_groups[0]['lr'], ES_train, ES_val))
