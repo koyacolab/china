@@ -278,7 +278,8 @@ class ModelBase:
             data["MAPE_GP"] = mape_gp_list
         print('save : ', data.keys())
         results_df = pd.DataFrame(data=data)
-        results_df.to_csv(self.savedir / f"{str(datetime.now())}.csv", index=False)
+        # results_df.to_csv(self.savedir / f"{str(datetime.now())}.csv", index=False)
+        results_df.to_csv(self.savedir / f"{str(pred_years[0])}.csv", index=False)
 
     def _run_1_year(
         self,
@@ -376,14 +377,14 @@ class ModelBase:
             model_information["test_pred_gp"] = gp_pred.squeeze(1)
 
         filename = f'{predict_year}_{run_number}_{time}_{"gp" if (self.gp is not None) else ""}.pth.tar'
-        print(type(model_information), len(model_information["train_loss"]), model_information["train_loss"])
+        # print(type(model_information), len(model_information["train_loss"]), model_information["train_loss"])
         torch.save(model_information, self.savedir / filename)
 
 
         counties = []
         for ii in range(0,len(model_information['test_indices']), 1):
             counties.append(model_information['test_indices'][ii][1])
-            print(type(np.array(model_information['test_indices'][ii][1])), type(model_information['test_indices'][ii][1]), model_information['test_indices'][ii][1])
+            # print(type(np.array(model_information['test_indices'][ii][1])), type(model_information['test_indices'][ii][1]), model_information['test_indices'][ii][1])
             TB_writer.add_scalars( "Yield", {'Actual':np.array(model_information["test_real"][ii]), 
                                           'Predict':np.array(model_information["test_pred"][ii]),
                                           'GP':np.array(model_information["test_pred_gp"][ii])}, 
@@ -548,7 +549,7 @@ class ModelBase:
             # print('qaqaqaqa : ', running_train_scores.keys(), np.array(running_train_scores['l2']).mean())
             # fn
 
-            if len(EarlyStopping_train) > 2000: 
+            if len(EarlyStopping_train) > 20: 
               ES_train = round( sum(EarlyStopping_train[epoch-20:-1])/20, 3 )
               ES_val = round( sum(EarlyStopping_val[epoch-20:-1])/20, 3)
               pprint('Step:{}, Epoch:{}, LR:{}, ES_train:{}, ES_val:{}'.format(step_number, epoch, optimizer.param_groups[0]['lr'], ES_train, ES_val))
@@ -688,7 +689,7 @@ class ModelBase:
         - removes excess months, if monthly predictions are being made
         """
         train_idx = np.nonzero(years != predict_year)[0]
-        test_idx = np.nonzero(years == predict_year)[0]
+        test_idx  = np.nonzero(years == predict_year)[0]
 
         # print('prepare : ', years[train_idx], years[test_idx])
 
