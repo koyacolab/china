@@ -317,7 +317,9 @@ class ModelBase:
         # times in one call to run()
         self.reinitialize_model(time=time)
 
-        TB_writer = SummaryWriter(log_dir=str(self.savedir) + f'/runs/' + f'{self.TB_prefix}_{predict_year}_{run_number}_{batch_size}', max_queue=2, flush_secs=10)
+        # TB_writer = SummaryWriter(log_dir=str(self.savedir) + f'/runs/' + f'{self.TB_prefix}_{predict_year}_{run_number}_{batch_size}', max_queue=2, flush_secs=10)
+        
+        TB_writer = SummaryWriter(log_dir=f'/tf_logs/' + f'{self.TB_prefix}_{predict_year}_{run_number}_{batch_size}', max_queue=2, flush_secs=10)
 
         train_scores, val_scores = self._train(
             train_data.images,
