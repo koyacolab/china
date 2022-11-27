@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 def plot_county_errors(model, svg_file=Path("data/counties.svg"), save_colorbar=True):
     """
     For the most part, reformatting of
-    https://github.com/JiaxuanYou/crop_yield_prediction/blob/master/6%20result_analysis/yield_map.py
 
     Generates an svg of the counties, coloured by their prediction error.
 
