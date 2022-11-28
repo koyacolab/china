@@ -1,7 +1,7 @@
 import torch
 from pathlib import Path
 
-# from cyp.data import MODISExporter, DataCleaner, Engineer, Engineer2
+from cyp.data import MODISExporter, DataCleaner, Engineer, Engineer2
 from cyp.models import ConvModel, RNNModel
 
 import fire
@@ -20,14 +20,14 @@ TASK = dict()
 ## for github 
 
 TASK = { 
-'YIELD_DATA_PATH' : "data/china_yield/wheat_2002-2018.csv",
-'CLEAR_YIELD_DATA_PATH' : "data/china_yield/wheat_clear.csv",
-'MASK_PATH' : "data/crop_yield-data_mask",
-'TEMPERATURE_PATH' : "data/crop_yield-data_temperature",
-'IMAGE_PATH' : "data/crop_yield-data_image",
-'CLEANED_DATA_PATH' : "data/img_output",
-'COUNTY_DATA_PATH' : "data/county_data.csv",
-'MODELS_PATH' : "data/models",
+'YIELD_DATA_PATH' : "../wheat.csv",
+'CLEAR_YIELD_DATA_PATH' : "../wheat.csv",
+'MASK_PATH' : "../data/crop_yield-data_mask",
+'TEMPERATURE_PATH' : "../data/crop_yield-data_temperature",
+'IMAGE_PATH' : "../data/crop_yield-data_image",
+'CLEANED_DATA_PATH' : "../data/img_output",
+'COUNTY_DATA_PATH' : "../county_data.csv",
+'MODELS_PATH' : "../data/models",
 'RANGE_DOWNLOAD' : ["2017-01-01", "2018-12-31"],
 'NUM_PROC_YEARS' : 2
 }

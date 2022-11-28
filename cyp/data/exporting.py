@@ -18,7 +18,6 @@ class MODISExporter:
 
     def __init__(
         self,
-        # locations_filepath=Path("data/china_yield/wheat_2002-2018.csv"),  
         collection_id=None,  #"MODIS/051/MCD12Q1",
         TASK=None,
     ):
@@ -142,7 +141,8 @@ class MODISExporter:
         """
         if check_if_done:
             if download_folder is None:
-                download_folder = Path("data") / folder_name
+                download_folder = Path("../data") / folder_name
+                print('export -> download_folder : ', download_folder)
                 already_downloaded = get_tif_files(download_folder)
 
         imgcoll = (
@@ -246,36 +246,36 @@ class MODISExporter:
 
         # # pull_MODIS_entire_county_clip.py
         self.export(
-            folder_name="crop_yield-data_image",
+            folder_name = "crop_yield-data_image",
             data_type="image",
             min_img_val=16000,
             max_img_val=100,
             export_limit=export_limit,
             major_states_only=major_states_only,
             check_if_done=check_if_done,
-            download_folder=download_folder[0],
+            download_folder = download_folder[0],
         )
 
         # pull_MODIS_landcover_entire_county_clip.py
         self.update_parameters(collection_id="MODIS/006/MCD12Q1")
         self.export(
-            folder_name="crop_yield-data_mask",
+            folder_name = "crop_yield-data_mask",
             data_type="mask",
             export_limit=export_limit,
             major_states_only=major_states_only,
             check_if_done=check_if_done,
-            download_folder=download_folder[1],
+            download_folder = download_folder[1],
         )
 
         # pull_MODIS_temperature_entire_county_clip.py
         self.update_parameters(collection_id="MODIS/061/MYD11A2")
         self.export(
-            folder_name="crop_yield-data_temperature",
+            folder_name = "crop_yield-data_temperature",
             data_type="temperature",
             export_limit=export_limit,
             major_states_only=major_states_only,
             check_if_done=check_if_done,
-            download_folder=download_folder[2],
+            download_folder = download_folder[2],
         )
         print("Done exporting! Download the folders from your Google Drive")
 
