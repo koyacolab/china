@@ -13,9 +13,6 @@ from .utils import get_tif_files
 from glob import glob
 import os
 
-# NUM_YEARS = 2
-
-
 class DataCleaner:
     """Take the exported, downloaded data
     and clean it.
@@ -192,7 +189,7 @@ def process_county(
     #     print(f"{filename} already written - skipping")
     #     return None
     # else:
-    #     print(f"Processing : {filename}")
+    print(f"Processing : {filename}")
 
     # check all the files exist:
     prefix = filename.split(".")[0].split("-")[0]
@@ -205,20 +202,15 @@ def process_county(
         print(f"Skipping {filename} - no mask")
         return None
 
-    # print('proc : 1')
     image = np.transpose(
         np.array(gdal.Open(str(image_path / filename)).ReadAsArray(), dtype="uint16"),
         axes=(1, 2, 0),
     )
 
-    # print('proc : 2')
-
     temp = np.transpose(
         np.array(gdal.Open(str(temperature_path)).ReadAsArray(), dtype="uint16"),
         axes=(1, 2, 0),
     )
-
-    # print('proc : 3')
 
     # From https://developers.google.com/earth-engine/datasets/catalog/MODIS_006_MOD09A1#description,
     # the temperature bands are in Kelvin, with a scale of 0.02. 11500 therefore represents -43C,
@@ -248,18 +240,9 @@ def process_county(
         temp, bands=2, composite_period=8, num_years=num_years
     )
 
-    # print('num_years : ', num_years)
-    # print('process county img_list  : ', type(img_list), len(img_list), type(img_list[0]), img_list[0].shape)
-    # print('process county mask_list : ', type(mask_list), len(mask_list), type(mask_list[0]), mask_list[0].shape)
-    # print('process county temp_list : ', type(temp_list), len(temp_list), type(temp_list[0]), temp_list[0].shape)
-    # fin
     img_temp_merge = merge_image_lists(img_list, 7, temp_list, 2)
 
-    # print('proc : 1 ')
-
     masked_img_temp = mask_image(img_temp_merge, mask_list)
-
-    # print('proc : 2 ')
 
     # start_year = 2003  # start year from the MODIS website
     for i in range(0, num_years):
@@ -365,18 +348,12 @@ def mask_image(im_list, mask_list):
     ), "Mask and Image lists are not the same length!"
 
     icount = 0
-    # print('mask_image : 1')
     for img, mask in zip(im_list, mask_list):
-        # print(icount, len(masked_im_list))
         expanded_mask = []
         expanded_mask = np.tile(mask, (1, 1, img.shape[2]))
-        # print(icount, '11')
         masked_img = img * expanded_mask
         expanded_mask = []
-        # print(icount, '12')
         masked_im_list.append(masked_img)
-        # print(icount, len(masked_im_list), img.shape)
         icount = icount + 1
-    # print('mask_image : 2')
 
     return masked_im_list
