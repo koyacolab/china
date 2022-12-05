@@ -1,7 +1,7 @@
 import torch
 from pathlib import Path
 
-from cyp.data import MODISExporter, DataCleaner, Engineer, Engineer2
+# from cyp.data import MODISExporter, DataCleaner, Engineer, Engineer2
 from cyp.models import ConvModel, RNNModel
 
 import fire

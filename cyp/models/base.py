@@ -175,27 +175,27 @@ class ModelBase:
         hist_train = dict()
         # with np.load(f"histogram_all_augmented.npz") as hist:
         with np.load(train_histogram) as hist:
-            images = hist["output_image"]
-            locations = hist["output_locations"]
-            yields = hist["output_yield"]
-            years = hist["output_year"]
-            indices = hist["output_indices"]
+            # images = hist["output_image"]
+            # locations = hist["output_locations"]
+            # yields = hist["output_yield"]
+            # years = hist["output_year"]
+            # indices = hist["output_index"]
             hist_train["output_image"] = hist["output_image"]
             hist_train["output_locations"] = hist["output_locations"]
             hist_train["output_yield"] = hist["output_yield"]
             hist_train["output_year"] = hist["output_year"]
-            hist_train["output_indices"] = hist["output_indices"] 
+            hist_train["output_indices"] = hist["output_index"] 
             # hist_train = hist
             # areas = hist["output_areas"]
 
         hist_valid = dict()
         with np.load(valid_histogram) as hist:
             # print(hist.keys())
-            images = hist["output_image"]
-            locations = hist["output_locations"]
-            yields = hist["output_yield"]
-            years = hist["output_year"]
-            indices = hist["output_index"]
+            # images = hist["output_image"]
+            # locations = hist["output_locations"]
+            # yields = hist["output_yield"]
+            # years = hist["output_year"]
+            # indices = hist["output_index"]
             hist_valid["output_image"] = hist["output_image"]
             hist_valid["output_locations"] = hist["output_locations"]
             hist_valid["output_yield"] = hist["output_yield"]
@@ -203,7 +203,7 @@ class ModelBase:
             hist_valid["output_indices"] = hist["output_index"]
             # hist_valid = hist
 
-        print(images.shape)
+        # print(images.shape)
 
         # to collect results
         years_list, run_numbers, rmse_list, me_list, mape_list, times_list = [], [], [], [], [], []
@@ -693,7 +693,7 @@ class ModelBase:
         train_idx = np.nonzero(years != predict_year)[0]
         test_idx  = np.nonzero(years == predict_year)[0]
 
-        # print('prepare : ', years[train_idx], years[test_idx])
+        print('prepare : ', years[train_idx], years[test_idx])
 
         train_images, test_images = self._normalize(images[train_idx], images[test_idx])
 
