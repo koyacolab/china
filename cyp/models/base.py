@@ -423,10 +423,10 @@ class ModelBase:
     ):
         """Defines the training loop for a model"""
 
-        import gc
-        gc.collect()
+#         import gc
+#         gc.collect()
         
-        torch.cuda.empty_cache()
+#         torch.cuda.empty_cache()
 
         # TB_writer = SummaryWriter(max_queue=1, flush_secs=10)
 
@@ -693,7 +693,7 @@ class ModelBase:
         train_idx = np.nonzero(years != predict_year)[0]
         test_idx  = np.nonzero(years == predict_year)[0]
 
-        print('prepare : ', years[train_idx], years[test_idx])
+        print('base.py->prepare_arrays : ', years[train_idx], years[test_idx])
 
         train_images, test_images = self._normalize(images[train_idx], images[test_idx])
 
