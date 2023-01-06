@@ -46,6 +46,8 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from matplotlib import pyplot as plt
 
 if __name__ == "__main__":
+    
+    freeze_support()
 
     data = pd.read_csv('corn_china_pandas_onebands.csv')  # encoding= 'unicode_escape')
 
@@ -62,12 +64,6 @@ if __name__ == "__main__":
         years_xtiks.append(ii)
 
     print(len(years_xtiks), years_xtiks)
-
-    # fn
-
-    # dff = data.copy()
-
-    # # df = data[ data['county'] ==  4]
 
     print(data['county'].unique())
 

@@ -1,8 +1,8 @@
 import os
 
-home_dir = '/content/gdrive/My Drive/AChina' 
-home_dir = '/hy-tmp'
-os.chdir(home_dir)
+# home_dir = '/content/gdrive/My Drive/AChina' 
+# home_dir = '/hy-tmp'
+# os.chdir(home_dir)
 # pwd
 
 # pip install tqdm 
@@ -16,7 +16,7 @@ import pandas as pd
 import os
 import warnings
 
-warnings.filterwarnings("ignore")  # avoid printing out absolute paths
+# warnings.filterwarnings("ignore")  # avoid printing out absolute paths
 
 # os.chdir("../../..")
 
@@ -45,29 +45,23 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from matplotlib import pyplot as plt
 
-if __name__ == "__main__":
+from multiprocessing import Pool, freeze_support
 
-    data = pd.read_csv('corn_china_pandas_onebands.csv')  # encoding= 'unicode_escape')
-
-    data
+def main():
+    
+    data = pd.read_csv('/hy-tmp/corn_china_pandas_onebands.csv')  # encoding= 'unicode_escape')
 
     data['county'] = data['county'].astype(int)
 
     years_list = list(data['years'].unique())
 
-    print(type(years_list), years_list)
+    # print(type(years_list), years_list)
 
     years_xtiks = []
     for ii in range(16, 512, 32):  # len(years_list)):
         years_xtiks.append(ii)
 
-    print(len(years_xtiks), years_xtiks)
-
-    # fn
-
-    # dff = data.copy()
-
-    # # df = data[ data['county'] ==  4]
+    # print(len(years_xtiks), years_xtiks)
 
     print(data['county'].unique())
 
@@ -86,41 +80,34 @@ if __name__ == "__main__":
 
         # print(mean_sownarea, df['sownareas'])    
 
-        fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(20,5))
+#         fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(20,5))
 
-        ax1.plot(X, np.asarray(df['sownareas']), color='b', label="Actual")
-        ax1.plot(X, mean_sownarea * np.ones((len(X),1)), color='r', label="Mean")
-        ax1.set_title(f"Sown Areas in county: {county}")
-        ax1.set_xticks(years_xtiks) 
-        ax1.set_xticklabels(years_list, rotation=45, fontsize=12)
+#         ax1.plot(X, np.asarray(df['sownareas']), color='b', label="Actual")
+#         ax1.plot(X, mean_sownarea * np.ones((len(X),1)), color='r', label="Mean")
+#         ax1.set_title(f"Sown Areas in county: {county}")
+#         ax1.set_xticks(years_xtiks) 
+#         ax1.set_xticklabels(years_list, rotation=45, fontsize=12)
 
-        ax2.plot(X, np.asarray(df['yieldvals']), color='g', label="Actual")
-        ax2.plot(X, mean_yieldval * np.ones((len(X),1)), color='r', label="Mean")
-        ax2.set_title(f"Yield Value in county: {county}")
-        ax2.set_xticks(years_xtiks) 
-        ax2.set_xticklabels(years_list, rotation=45, fontsize=12)
+#         ax2.plot(X, np.asarray(df['yieldvals']), color='g', label="Actual")
+#         ax2.plot(X, mean_yieldval * np.ones((len(X),1)), color='r', label="Mean")
+#         ax2.set_title(f"Yield Value in county: {county}")
+#         ax2.set_xticks(years_xtiks) 
+#         ax2.set_xticklabels(years_list, rotation=45, fontsize=12)
 
-    plt.show()
+#     plt.show()
 
-    print(len(mean_sownareas))
+    # print(len(mean_sownareas))
 
     # fn
 
     data.insert(4, "mean_areas", np.asarray(mean_sownareas).astype(np.float64))  
     data.insert(6, "mean_yields", np.asarray(mean_yieldvals).astype(np.float64)) 
 
-    data
+    # data
 
     data['years'] = data['years'].astype(str)
     data['county'] = data['county'].astype(str)
     data['time_idx'] = data['time_idx'].astype(np.int64)
-    # data.head()
-    print(type(data['band_0_500'][0]))
-
-    data.describe()
-
-    # torch.multiprocessing.set_start_method('spawn') 
-
     # create the dataset from the pandas dataframe
     train_data = data[ data["years"] != "2018" ]
     valid_data = data[ data["years"] == "2018" ]
@@ -191,17 +178,12 @@ if __name__ == "__main__":
         # reduce_on_plateau_patience=4,
     )
 
-    # summarize(model,max_depth=-1)  # print model summary
-    # model.hparams
-
-    # fn
-
     # convert datasets to dataloaders for training
     batch_size = 64
-    train_dataloader = train_dataset_with_covariates.to_dataloader(train=True,  batch_size=batch_size)
-    valid_dataloader = valid_dataset_with_covariates.to_dataloader(train=False, batch_size=batch_size)
+    train_dataloader = train_dataset_with_covariates.to_dataloader(train=True,  batch_size=batch_size, num_workers=2)
+    valid_dataloader = valid_dataset_with_covariates.to_dataloader(train=False, batch_size=batch_size, num_workers=2)
 
-    exp_name = "mean_areas_yield_Quantil"
+    exp_name = "2GPUs"
 
     logger_name = f"TFT-exp:{exp_name}-batch_size={batch_size}-encoder_length={encoder_length}-group={group}-known_reals={known_reals}"
 
@@ -218,80 +200,92 @@ if __name__ == "__main__":
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=valid_dataloader)
     # trainer.validate(model=model, dataloaders=valid_dataloaders)
 
-    # load the best model according to the validation loss
-    # (given that we use early stopping, this is not necessarily the last epoch)
-    best_model_path = trainer.checkpoint_callback.best_model_path
-    best_tft = TemporalFusionTransformer.load_from_checkpoint(best_model_path)
-    # trainer.save_checkpoint(f"tft1_best_model_{exp_name}.ckpt")
-    # best_tft = TemporalFusionTransformer.load_from_checkpoint(f"tft1_best_model_{exp_name}.ckpt")
+    # torch.multiprocessing.set_start_method('spawn') 
+    
 
-    # calcualte mean absolute error on validation set
-    actuals = torch.cat([y[0] for x, y in iter(valid_dataloader)])
-    predictions = best_tft.predict(valid_dataloader)
-    (actuals - predictions).abs().mean()
+if __name__ == "__main__":
+    
+    freeze_support()
+    
+    main()
+    
 
-    print(type(actuals), actuals.shape, type(predictions), predictions.shape)
-    # print(actuals, predictions)
 
-    X = [X for X in range(0, actuals.shape[0])]
 
-    fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(20,5))
+#     # load the best model according to the validation loss
+#     # (given that we use early stopping, this is not necessarily the last epoch)
+#     best_model_path = trainer.checkpoint_callback.best_model_path
+#     best_tft = TemporalFusionTransformer.load_from_checkpoint(best_model_path)
+#     # trainer.save_checkpoint(f"tft1_best_model_{exp_name}.ckpt")
+#     # best_tft = TemporalFusionTransformer.load_from_checkpoint(f"tft1_best_model_{exp_name}.ckpt")
 
-    ax1.plot(X, actuals, color='b', label="Actual")
-    ax1.plot(X, predictions, color='r', label="Predicted")
-    ax1.set_title(logger_name)
+#     # calcualte mean absolute error on validation set
+#     actuals = torch.cat([y[0] for x, y in iter(valid_dataloader)])
+#     predictions = best_tft.predict(valid_dataloader)
+#     (actuals - predictions).abs().mean()
 
-    files = os.path.join(home_dir, f'TFT{batch_size}_{exp_name}.png')
-    plt.savefig(files, bbox_inches='tight')
-    plt.show()
+#     print(type(actuals), actuals.shape, type(predictions), predictions.shape)
+#     # print(actuals, predictions)
 
-    X = [X for X in range(0, actuals.shape[0])]
-    X = [X for X in range(1, 21)]
+#     X = [X for X in range(0, actuals.shape[0])]
 
-    fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(20,5))
+#     fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(20,5))
 
-    outs = int( actuals.shape[0] / 20 )
+#     ax1.plot(X, actuals, color='b', label="Actual")
+#     ax1.plot(X, predictions, color='r', label="Predicted")
+#     ax1.set_title(logger_name)
 
-    act = []
-    pred = []
-    for ii in range(0,outs*20,outs):
-        act.append(actuals[ii:ii+outs].mean())
-        pred.append(predictions[ii:ii+outs].mean())
+#     files = os.path.join(home_dir, f'TFT{batch_size}_{exp_name}.png')
+#     plt.savefig(files, bbox_inches='tight')
+#     plt.show()
 
-    ax1.plot(X, np.asarray(act), 'bo', label="Actual")
-    ax1.plot(X, np.asarray(pred), 'ro', label="Predicted")
-    leg = plt.legend(loc='upper center')
-    plt.xticks(X)
-    ax1.set_ylim([0, 1])
-    plt.xlabel("counties")
-    plt.ylabel("Yield")
-    ax1.set_title("Corn yield predictions for 2018 with Temporal Fusion Transformer")
+#     X = [X for X in range(0, actuals.shape[0])]
+#     X = [X for X in range(1, 21)]
 
-    files = os.path.join(home_dir, f'TFT{batch_size}_corn_yield_{exp_name}.png')
-    plt.savefig(files, bbox_inches='tight')
-    plt.show()
+#     fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(20,5))
 
-    X = [X for X in range(0, actuals.shape[0])]
-    X = [X for X in range(1, 21)]
+#     outs = int( actuals.shape[0] / 20 )
 
-    fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(20,5))
+#     act = []
+#     pred = []
+#     for ii in range(0,outs*20,outs):
+#         act.append(actuals[ii:ii+outs].mean())
+#         pred.append(predictions[ii:ii+outs].mean())
 
-    act = []
-    pred = []
-    for ii in range(0,outs*20,outs):
-        act.append(actuals[ii:ii+outs].mean())
-        pred.append(predictions[ii:ii+outs].mean())
+#     ax1.plot(X, np.asarray(act), 'bo', label="Actual")
+#     ax1.plot(X, np.asarray(pred), 'ro', label="Predicted")
+#     leg = plt.legend(loc='upper center')
+#     plt.xticks(X)
+#     ax1.set_ylim([0, 1])
+#     plt.xlabel("counties")
+#     plt.ylabel("Yield")
+#     ax1.set_title("Corn yield predictions for 2018 with Temporal Fusion Transformer")
 
-    ax1.plot(X, (1-np.abs(np.asarray(act)-np.asarray(pred))) * 100, 'bo', label="Actual")
-    # ax1.plot(X, np.asarray(pred), 'r.', label="Predicted")
-    ax1.set_ylim([70, 105])
-    plt.xticks(X)
-    plt.xlabel("counties")
-    plt.ylabel("Yild Accuracy")
-    ax1.set_title("ACCURACY for Temporal Fusion Transformer for 2018 year for corn yield predict") # + logger_name)
+#     files = os.path.join(home_dir, f'TFT{batch_size}_corn_yield_{exp_name}.png')
+#     plt.savefig(files, bbox_inches='tight')
+#     plt.show()
 
-    files = os.path.join(home_dir, f'TFT{batch_size}_corn_accuracy_{exp_name}.png')
-    plt.savefig(files, bbox_inches='tight')
-    plt.show()
+#     X = [X for X in range(0, actuals.shape[0])]
+#     X = [X for X in range(1, 21)]
+
+#     fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(20,5))
+
+#     act = []
+#     pred = []
+#     for ii in range(0,outs*20,outs):
+#         act.append(actuals[ii:ii+outs].mean())
+#         pred.append(predictions[ii:ii+outs].mean())
+
+#     ax1.plot(X, (1-np.abs(np.asarray(act)-np.asarray(pred))) * 100, 'bo', label="Actual")
+#     # ax1.plot(X, np.asarray(pred), 'r.', label="Predicted")
+#     ax1.set_ylim([70, 105])
+#     plt.xticks(X)
+#     plt.xlabel("counties")
+#     plt.ylabel("Yild Accuracy")
+#     ax1.set_title("ACCURACY for Temporal Fusion Transformer for 2018 year for corn yield predict") # + logger_name)
+
+#     files = os.path.join(home_dir, f'TFT{batch_size}_corn_accuracy_{exp_name}.png')
+#     plt.savefig(files, bbox_inches='tight')
+#     plt.show()
 
 
