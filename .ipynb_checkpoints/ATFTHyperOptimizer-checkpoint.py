@@ -47,12 +47,15 @@ from matplotlib import pyplot as plt
 
 from multiprocessing import Pool, freeze_support
 
+import optuna
+
 import pickle
 
 from pytorch_forecasting.models.temporal_fusion_transformer.tuning import optimize_hyperparameters
 
 def main():
-    freeze_support()
+    # freeze_support()
+    # warnings.filterwarnings("ignore")
     
     data = pd.read_csv('/hy-tmp/corn_china_pandas_onebands.csv')  # encoding= 'unicode_escape')
 
@@ -117,16 +120,13 @@ def main():
     train_data = data[ data["years"] != "2018" ]
     valid_data = data[ data["years"] == "2018" ]
 
-    bins_name = list()   #list(["yield"])
-    for bin in range(0, 512):
-        bins_name.append(f'bin{bin}')
-
-    # print(bins_name)
-
-    bins_name = list()
+    bins_name = ["sownareas"]   #list()
     for band in tqdm(range(0, 9)):
         for bins in range(0, 512):
             bins_name.append( f'band_{band}_{bins}' )
+            
+    # print(bins_name)
+    # fn
 
     encoder_length = 20
 
@@ -185,8 +185,8 @@ def main():
 
     # convert datasets to dataloaders for training
     batch_size = 64
-    train_dataloader = train_dataset_with_covariates.to_dataloader(train=True,  batch_size=batch_size, num_workers=2)
-    valid_dataloader = valid_dataset_with_covariates.to_dataloader(train=False, batch_size=batch_size, num_workers=2)
+    train_dataloader = train_dataset_with_covariates.to_dataloader(train=True,  batch_size=batch_size, num_workers=8)
+    valid_dataloader = valid_dataset_with_covariates.to_dataloader(train=False, batch_size=batch_size, num_workers=8)
 
 #     exp_name = "2GPUs"
 
@@ -210,18 +210,18 @@ def main():
     study = optimize_hyperparameters(
         train_dataloader,
         valid_dataloader,
-        model_path="optuna_test",
+        model_path="/hy-tmp",
         n_trials=200,
-        max_epochs=50,
+        max_epochs=20,
         gradient_clip_val_range=(0.01, 1.0),
         hidden_size_range=(8, 128),
         hidden_continuous_size_range=(8, 128),
         attention_head_size_range=(1, 4),
-        learning_rate_range=(0.001, 0.1),
+        learning_rate_range=(0.00001, 0.01),
         dropout_range=(0.1, 0.3),
         trainer_kwargs=dict(limit_train_batches=30),
         reduce_on_plateau_patience=4,
-        use_learning_rate_finder=True,  # use Optuna to find ideal learning rate or use in-built learning rate finder
+        use_learning_rate_finder=False,  # use Optuna to find ideal learning rate or use in-built learning rate finder
     )
 
     # save study results - also we can resume tuning at a later point in time
@@ -237,86 +237,8 @@ def main():
 if __name__ == "__main__":
     
     freeze_support()
+    warnings.filterwarnings("ignore")
     
     main()
     
-
-
-
-#     # load the best model according to the validation loss
-#     # (given that we use early stopping, this is not necessarily the last epoch)
-#     best_model_path = trainer.checkpoint_callback.best_model_path
-#     best_tft = TemporalFusionTransformer.load_from_checkpoint(best_model_path)
-#     # trainer.save_checkpoint(f"tft1_best_model_{exp_name}.ckpt")
-#     # best_tft = TemporalFusionTransformer.load_from_checkpoint(f"tft1_best_model_{exp_name}.ckpt")
-
-#     # calcualte mean absolute error on validation set
-#     actuals = torch.cat([y[0] for x, y in iter(valid_dataloader)])
-#     predictions = best_tft.predict(valid_dataloader)
-#     (actuals - predictions).abs().mean()
-
-#     print(type(actuals), actuals.shape, type(predictions), predictions.shape)
-#     # print(actuals, predictions)
-
-#     X = [X for X in range(0, actuals.shape[0])]
-
-#     fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(20,5))
-
-#     ax1.plot(X, actuals, color='b', label="Actual")
-#     ax1.plot(X, predictions, color='r', label="Predicted")
-#     ax1.set_title(logger_name)
-
-#     files = os.path.join(home_dir, f'TFT{batch_size}_{exp_name}.png')
-#     plt.savefig(files, bbox_inches='tight')
-#     plt.show()
-
-#     X = [X for X in range(0, actuals.shape[0])]
-#     X = [X for X in range(1, 21)]
-
-#     fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(20,5))
-
-#     outs = int( actuals.shape[0] / 20 )
-
-#     act = []
-#     pred = []
-#     for ii in range(0,outs*20,outs):
-#         act.append(actuals[ii:ii+outs].mean())
-#         pred.append(predictions[ii:ii+outs].mean())
-
-#     ax1.plot(X, np.asarray(act), 'bo', label="Actual")
-#     ax1.plot(X, np.asarray(pred), 'ro', label="Predicted")
-#     leg = plt.legend(loc='upper center')
-#     plt.xticks(X)
-#     ax1.set_ylim([0, 1])
-#     plt.xlabel("counties")
-#     plt.ylabel("Yield")
-#     ax1.set_title("Corn yield predictions for 2018 with Temporal Fusion Transformer")
-
-#     files = os.path.join(home_dir, f'TFT{batch_size}_corn_yield_{exp_name}.png')
-#     plt.savefig(files, bbox_inches='tight')
-#     plt.show()
-
-#     X = [X for X in range(0, actuals.shape[0])]
-#     X = [X for X in range(1, 21)]
-
-#     fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(20,5))
-
-#     act = []
-#     pred = []
-#     for ii in range(0,outs*20,outs):
-#         act.append(actuals[ii:ii+outs].mean())
-#         pred.append(predictions[ii:ii+outs].mean())
-
-#     ax1.plot(X, (1-np.abs(np.asarray(act)-np.asarray(pred))) * 100, 'bo', label="Actual")
-#     # ax1.plot(X, np.asarray(pred), 'r.', label="Predicted")
-#     ax1.set_ylim([70, 105])
-#     plt.xticks(X)
-#     plt.xlabel("counties")
-#     plt.ylabel("Yild Accuracy")
-#     ax1.set_title("ACCURACY for Temporal Fusion Transformer for 2018 year for corn yield predict") # + logger_name)
-
-#     files = os.path.join(home_dir, f'TFT{batch_size}_corn_accuracy_{exp_name}.png')
-#     plt.savefig(files, bbox_inches='tight')
-#     plt.show()
-
-
+    
