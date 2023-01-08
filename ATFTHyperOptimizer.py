@@ -184,9 +184,9 @@ def main():
     )
 
     # convert datasets to dataloaders for training
-    batch_size = 64
-    train_dataloader = train_dataset_with_covariates.to_dataloader(train=True,  batch_size=batch_size, num_workers=8)
-    valid_dataloader = valid_dataset_with_covariates.to_dataloader(train=False, batch_size=batch_size, num_workers=8)
+    batch_size = 42
+    train_dataloader = train_dataset_with_covariates.to_dataloader(train=True,  batch_size=batch_size, num_workers=4)
+    valid_dataloader = valid_dataset_with_covariates.to_dataloader(train=False, batch_size=batch_size, num_workers=4)
 
 #     exp_name = "2GPUs"
 
@@ -211,13 +211,13 @@ def main():
         train_dataloader,
         valid_dataloader,
         model_path="/hy-tmp",
-        n_trials=200,
+        n_trials=100,
         max_epochs=20,
         gradient_clip_val_range=(0.01, 1.0),
         hidden_size_range=(8, 128),
         hidden_continuous_size_range=(8, 128),
         attention_head_size_range=(1, 4),
-        learning_rate_range=(0.00001, 0.01),
+        learning_rate_range=(0.0001, 0.01),
         dropout_range=(0.1, 0.3),
         trainer_kwargs=dict(limit_train_batches=30),
         reduce_on_plateau_patience=4,
