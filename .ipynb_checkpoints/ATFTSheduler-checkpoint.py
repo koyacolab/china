@@ -47,6 +47,23 @@ from matplotlib import pyplot as plt
 
 from multiprocessing import Pool, freeze_support
 
+# Customize LearningRateFinder callback to run at different epochs.
+# This feature is useful while fine-tuning models.
+from pytorch_lightning.callbacks import LearningRateFinder
+from pytorch_lightning.callbacks import BackboneFinetuning
+
+class FineTuneLearningRateFinder(LearningRateFinder):
+    def __init__(self, milestones, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.milestones = milestones
+
+    def on_fit_start(self, *args, **kwargs):
+        return
+
+    def on_train_epoch_start(self, trainer, pl_module):
+        if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
+            self.lr_find(trainer, pl_module)
+
 def main():
     
     data = pd.read_csv('/hy-tmp/corn_china_pandas_onebands.csv')  # encoding= 'unicode_escape')
@@ -192,10 +209,19 @@ def main():
     callbacks=[checkpoint_callback]
 
     logger = TensorBoardLogger('/tf_logs', name=logger_name)
+    
+    backbone_finetuning = BackboneFinetuning(unfreeze_backbone_at_epoch=2, backbone_initial_ratio_lr=10.0, \
+                                             backbone_initial_lr=0.001)
+    
+# >>> trainer = Trainer(callbacks=[backbone_finetuning])
+
+    # trainer = Trainer(callbacks=[FineTuneLearningRateFinder(milestones=(5, 10))])
+    # trainer.fit(...)
 
     # trainer = Trainer(gpus=1, max_epochs=100, limit_train_batches=2606, logger=logger)
+    print("Start trainer3")
     trainer = Trainer(accelerator='gpu', devices="0, 1", logger=logger, max_epochs=60, 
-                      log_every_n_steps=1, callbacks=[checkpoint_callback])
+                      log_every_n_steps=1, callbacks=[FineTuneLearningRateFinder(milestones=(3, 6))])
 
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=valid_dataloader)
     # trainer.validate(model=model, dataloaders=valid_dataloaders)

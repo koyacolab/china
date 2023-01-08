@@ -49,6 +49,9 @@ from multiprocessing import Pool, freeze_support
 
 def main():
     
+    freeze_support()
+    warnings.filterwarnings("ignore")
+    
     data = pd.read_csv('/hy-tmp/corn_china_pandas_onebands.csv')  # encoding= 'unicode_escape')
 
     data['county'] = data['county'].astype(int)
@@ -109,16 +112,16 @@ def main():
     data['county'] = data['county'].astype(str)
     data['time_idx'] = data['time_idx'].astype(np.int64)
     # create the dataset from the pandas dataframe
-    train_data = data[ data["years"] != "2018" ]
-    valid_data = data[ data["years"] == "2018" ]
+    train_data = data[ data["years"] != "2016" ]
+    valid_data = data[ data["years"] == "2016" ]
 
-    bins_name = list()   #list(["yield"])
-    for bin in range(0, 512):
-        bins_name.append(f'bin{bin}')
+    # bins_name = list()   #list(["yield"])
+    # for bin in range(0, 512):
+    #     bins_name.append(f'bin{bin}')
 
     # print(bins_name)
 
-    bins_name = list()
+    bins_name = ["sownareas"]   #list()
     for band in tqdm(range(0, 9)):
         for bins in range(0, 512):
             bins_name.append( f'band_{band}_{bins}' )
@@ -183,9 +186,9 @@ def main():
     train_dataloader = train_dataset_with_covariates.to_dataloader(train=True,  batch_size=batch_size, num_workers=2)
     valid_dataloader = valid_dataset_with_covariates.to_dataloader(train=False, batch_size=batch_size, num_workers=2)
 
-    exp_name = "2GPUs"
+    exp_name = "start/stop Early Stopping"
 
-    logger_name = f"TFT-exp:{exp_name}-batch_size={batch_size}-encoder_length={encoder_length}-group={group}-known_reals={known_reals}"
+    logger_name = f"TFT:{exp_name}-batch_size={batch_size}-encoder_length={encoder_length}-group={group}-known_reals={known_reals}"
 
     checkpoint_callback = ModelCheckpoint(dirpath='/hy-tmp/chck/'+logger_name, every_n_train_steps=1)
 
@@ -194,7 +197,7 @@ def main():
     logger = TensorBoardLogger('/tf_logs', name=logger_name)
 
     # trainer = Trainer(gpus=1, max_epochs=100, limit_train_batches=2606, logger=logger)
-    trainer = Trainer(accelerator='gpu', devices="0, 1", logger=logger, max_epochs=60, 
+    trainer = Trainer(accelerator='gpu', devices="0, 1", logger=logger, max_epochs=40, 
                       log_every_n_steps=1, callbacks=[checkpoint_callback])
 
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=valid_dataloader)
