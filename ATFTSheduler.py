@@ -224,7 +224,7 @@ def main():
     # trainer = Trainer(gpus=1, max_epochs=100, limit_train_batches=2606, logger=logger)
     print("Start trainer3")
     trainer = Trainer(accelerator='gpu', devices="0, 1", logger=logger, max_epochs=60, 
-                      log_every_n_steps=1, callbacks=[FineTuneLearningRateFinder(milestones=(3, 6))])
+                      log_every_n_steps=1, callbacks=[checkpoint_callback, FineTuneLearningRateFinder(milestones=(40, 50))])
 
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=valid_dataloader)
     # trainer.validate(model=model, dataloaders=valid_dataloaders)
