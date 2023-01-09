@@ -81,6 +81,10 @@ def main():
     freeze_support()
     warnings.filterwarnings("ignore")
     
+    print(dir(FineTuneLearningRateFinder(milestones=(1,2))))
+    
+    sys.exit(0)
+    
     data = pd.read_csv('/hy-tmp/corn_china_pandas_onebands.csv')  # encoding= 'unicode_escape')
 
     data['county'] = data['county'].astype(int)

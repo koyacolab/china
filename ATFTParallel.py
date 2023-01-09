@@ -50,6 +50,9 @@ from multiprocessing import Pool, freeze_support
 
 def main():
     
+    home_dir = '/hy-tmp'
+    # os.chdir(home_dir)
+    
     freeze_support()
     warnings.filterwarnings("ignore")
     

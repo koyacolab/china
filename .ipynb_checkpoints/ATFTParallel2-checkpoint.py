@@ -47,7 +47,12 @@ from matplotlib import pyplot as plt
 
 from multiprocessing import Pool, freeze_support
 
+from pytorch_lightning.callbacks import LearningRateMonitor
+
 def main():
+    
+    home_dir = '/hy-tmp'
+    os.chdir(home_dir)
     
     freeze_support()
     warnings.filterwarnings("ignore")
@@ -179,7 +184,7 @@ def main():
         learning_rate=0.001,
         loss=QuantileLoss(),
         # log_interval=10,  # uncomment for learning rate finder and otherwise, e.g. to 10 for logging every 10 batches
-        # reduce_on_plateau_patience=4,
+        reduce_on_plateau_patience=4,
     )
 
     # convert datasets to dataloaders for training
@@ -187,18 +192,19 @@ def main():
     train_dataloader = train_dataset_with_covariates.to_dataloader(train=True,  batch_size=batch_size, num_workers=2)
     valid_dataloader = valid_dataset_with_covariates.to_dataloader(train=False, batch_size=batch_size, num_workers=2)
 
-    exp_name = "EarlyStopping2"
+    exp_name = "AFTFParallel2"
 
     logger_name = f"TFT:{exp_name}-batch_size={batch_size}-encoder_length={encoder_length}-group={group}-known_reals={known_reals}"
 
     checkpoint_callback = ModelCheckpoint(dirpath='/hy-tmp/chck/'+logger_name, every_n_epochs=1)
 
-
     logger = TensorBoardLogger('/tf_logs', name=logger_name)
+    
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
 
     # trainer = Trainer(gpus=1, max_epochs=100, limit_train_batches=2606, logger=logger)
     trainer = Trainer(accelerator='gpu', devices="0, 1", logger=logger, max_epochs=1, 
-                      log_every_n_steps=1, callbacks=[checkpoint_callback])
+                      log_every_n_steps=1, callbacks=[checkpoint_callback, lr_monitor])
 
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=valid_dataloader)
     # trainer.validate(model=model, dataloaders=valid_dataloaders)
@@ -207,10 +213,10 @@ def main():
     
     # load the best model according to the validation loss
     # (given that we use early stopping, this is not necessarily the last epoch)
-    best_model_path = trainer.checkpoint_callback.best_model_path
-    best_tft = TemporalFusionTransformer.load_from_checkpoint(best_model_path)
-    # trainer.save_checkpoint(f"tft1_best_model_{exp_name}.ckpt")
-    # best_tft = TemporalFusionTransformer.load_from_checkpoint(f"tft1_best_model_{exp_name}.ckpt")
+    # best_model_path = trainer.checkpoint_callback.best_model_path
+    # best_tft = TemporalFusionTransformer.load_from_checkpoint(best_model_path)
+    trainer.save_checkpoint(f"tft_best_model_{exp_name}.ckpt")
+    best_tft = TemporalFusionTransformer.load_from_checkpoint(f"tft_best_model_{exp_name}.ckpt")
 
     # calcualte mean absolute error on validation set
     actuals = torch.cat([y[0] for x, y in iter(valid_dataloader)])
@@ -230,7 +236,7 @@ def main():
 
     files = os.path.join(home_dir, f'TFT{batch_size}_{exp_name}.png')
     plt.savefig(files, bbox_inches='tight')
-    plt.show()
+    # plt.show()
 
     X = [X for X in range(0, actuals.shape[0])]
     X = [X for X in range(1, 21)]
@@ -256,7 +262,7 @@ def main():
 
     files = os.path.join(home_dir, f'TFT{batch_size}_corn_yield_{exp_name}.png')
     plt.savefig(files, bbox_inches='tight')
-    plt.show()
+    # plt.show()
 
     X = [X for X in range(0, actuals.shape[0])]
     X = [X for X in range(1, 21)]
@@ -279,7 +285,7 @@ def main():
 
     files = os.path.join(home_dir, f'TFT{batch_size}_corn_accuracy_{exp_name}.png')
     plt.savefig(files, bbox_inches='tight')
-    plt.show()
+    # plt.show()
     
 
 if __name__ == "__main__":

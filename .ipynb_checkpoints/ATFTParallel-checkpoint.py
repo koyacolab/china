@@ -50,6 +50,9 @@ from multiprocessing import Pool, freeze_support
 
 def main():
     
+    home_dir = '/hy-tmp'
+    # os.chdir(home_dir)
+    
     freeze_support()
     warnings.filterwarnings("ignore")
     
@@ -204,7 +207,7 @@ def main():
     
     for ii in range(0,2):
         
-        print('cycle:',ii, model.hparams.learning_rate)
+        print('cycle:', ii, model.hparams.learning_rate)
         
         if ii == 1:
             model.hparams.learning_rate = model.hparams.learning_rate / 10.0
