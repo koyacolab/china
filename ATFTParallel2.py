@@ -189,12 +189,12 @@ def main():
 
     # convert datasets to dataloaders for training
     batch_size = 60
-    train_dataloader = train_dataset_with_covariates.to_dataloader(train=True,  batch_size=batch_size, num_workers=2)
-    valid_dataloader = valid_dataset_with_covariates.to_dataloader(train=False, batch_size=batch_size, num_workers=2)
+    train_dataloader = train_dataset_with_covariates.to_dataloader(train=True,  batch_size=batch_size, num_workers=4)
+    valid_dataloader = valid_dataset_with_covariates.to_dataloader(train=False, batch_size=batch_size, num_workers=4)
 
-    exp_name = "AFTFParallel2"
+    exp_name = "reduce_on_plateau_patience=4"
 
-    logger_name = f"TFT:{exp_name}-batch_size={batch_size}-encoder_length={encoder_length}-group={group}-known_reals={known_reals}"
+    logger_name = f"ATFTParallel2:{exp_name}-batch_size={batch_size}-encoder_length={encoder_length}-group={group}-known_reals={known_reals}"
 
     checkpoint_callback = ModelCheckpoint(dirpath='/hy-tmp/chck/'+logger_name, every_n_epochs=1)
 
@@ -203,7 +203,7 @@ def main():
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
 
     # trainer = Trainer(gpus=1, max_epochs=100, limit_train_batches=2606, logger=logger)
-    trainer = Trainer(accelerator='gpu', devices="0, 1", logger=logger, max_epochs=1, 
+    trainer = Trainer(accelerator='gpu', devices="0, 1", logger=logger, max_epochs=40, 
                       log_every_n_steps=1, callbacks=[checkpoint_callback, lr_monitor])
 
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=valid_dataloader)
@@ -215,8 +215,9 @@ def main():
     # (given that we use early stopping, this is not necessarily the last epoch)
     # best_model_path = trainer.checkpoint_callback.best_model_path
     # best_tft = TemporalFusionTransformer.load_from_checkpoint(best_model_path)
-    trainer.save_checkpoint(f"tft_best_model_{exp_name}.ckpt")
-    best_tft = TemporalFusionTransformer.load_from_checkpoint(f"tft_best_model_{exp_name}.ckpt")
+    chkfile = os.path.join(home_dir, f"tft_best_model_{exp_name}.ckpt")
+    trainer.save_checkpoint(chkfile)
+    best_tft = TemporalFusionTransformer.load_from_checkpoint(chkfile)
 
     # calcualte mean absolute error on validation set
     actuals = torch.cat([y[0] for x, y in iter(valid_dataloader)])

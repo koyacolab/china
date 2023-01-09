@@ -176,9 +176,9 @@ def main():
     train_dataloader = train_dataset_with_covariates.to_dataloader(train=True,  batch_size=batch_size, num_workers=2)
     valid_dataloader = valid_dataset_with_covariates.to_dataloader(train=False, batch_size=batch_size, num_workers=2)
     
-    exp_name = "EarlyStoped"  
+    exp_name = "tcycle_lr"  
 
-    logger_name = f"TFT:{exp_name}-batch_size={batch_size}-encoder_length={encoder_length}-group={group}-known_reals={known_reals}"
+    logger_name = f"TFTParallel:{exp_name}-batch_size={batch_size}-encoder_length={encoder_length}-group={group}-known_reals={known_reals}"
 
     checkpoint_callback = ModelCheckpoint(dirpath='/hy-tmp/chck/'+logger_name, every_n_epochs=1)
 
@@ -207,7 +207,7 @@ def main():
     
     for ii in range(0,2):
         
-        print('cycle:', ii, model.hparams.learning_rate)
+        print('new cycle:', ii, model.hparams.learning_rate)
         
         if ii == 1:
             model.hparams.learning_rate = model.hparams.learning_rate / 10.0
@@ -218,8 +218,10 @@ def main():
         
         print("end fit:", ii)
     
-    trainer.save_checkpoint(f"tft_best_model_{exp_name}.ckpt")
-    best_tft = TemporalFusionTransformer.load_from_checkpoint(f"tft_best_model_{exp_name}.ckpt")
+        trainer.save_checkpoint(f"tft_best_model_{exp_name}.ckpt")
+        best_tft = TemporalFusionTransformer.load_from_checkpoint(f"tft_best_model_{exp_name}.ckpt")
+        
+        print("end of cycle")
     
     # calcualte mean absolute error on validation set
     actuals = torch.cat([y[0] for x, y in iter(valid_dataloader)])
@@ -236,7 +238,7 @@ def main():
 
     files = os.path.join(home_dir, f'TFT{batch_size}_{exp_name}.png')
     plt.savefig(files, bbox_inches='tight')
-    plt.show()
+    # plt.show()
     
     X = [X for X in range(0, actuals.shape[0])]
     X = [X for X in range(1, 21)]
@@ -262,7 +264,7 @@ def main():
 
     files = os.path.join(home_dir, f'TFT{batch_size}_corn_yield_{exp_name}.png')
     plt.savefig(files, bbox_inches='tight')
-    plt.show()
+    # plt.show()
     
     X = [X for X in range(0, actuals.shape[0])]
     X = [X for X in range(1, 21)]
@@ -285,7 +287,7 @@ def main():
 
     files = os.path.join(home_dir, f'TFT{batch_size}_corn_accuracy_{exp_name}.png')
     plt.savefig(files, bbox_inches='tight')
-    plt.show()
+    # plt.show()
     
     sys.exit(0)
     
