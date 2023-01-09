@@ -15,6 +15,7 @@ import pandas as pd
 
 import os
 import warnings
+import sys
 
 # warnings.filterwarnings("ignore")  # avoid printing out absolute paths
 
@@ -166,49 +167,130 @@ def main():
         # time_varying_known_categoricals=["years"],
         # static_categoricals=["years", "county"],
     )
-
-    model = TemporalFusionTransformer.from_dataset(
-        train_dataset_with_covariates,
-        # learning_rate=0.03,
-        # hidden_size=16,
-        # attention_head_size=4,
-        # dropout=0.1,
-        # hidden_continuous_size=8,
-        # output_size=1,  # 7 quantiles by default
-        # loss=RMSE(),
-        loss=QuantileLoss(),
-        # log_interval=10,  # uncomment for learning rate finder and otherwise, e.g. to 10 for logging every 10 batches
-        # reduce_on_plateau_patience=4,
-    )
-
+    
     # convert datasets to dataloaders for training
     batch_size = 64
     train_dataloader = train_dataset_with_covariates.to_dataloader(train=True,  batch_size=batch_size, num_workers=2)
     valid_dataloader = valid_dataset_with_covariates.to_dataloader(train=False, batch_size=batch_size, num_workers=2)
-
-    exp_name = "start/stop Early Stopping"
+    
+    exp_name = "EarlyStoped"  
 
     logger_name = f"TFT:{exp_name}-batch_size={batch_size}-encoder_length={encoder_length}-group={group}-known_reals={known_reals}"
 
-    checkpoint_callback = ModelCheckpoint(dirpath='/hy-tmp/chck/'+logger_name, every_n_train_steps=1)
-
-    callbacks=[checkpoint_callback]
+    checkpoint_callback = ModelCheckpoint(dirpath='/hy-tmp/chck/'+logger_name, every_n_epochs=1)
 
     logger = TensorBoardLogger('/tf_logs', name=logger_name)
 
     # trainer = Trainer(gpus=1, max_epochs=100, limit_train_batches=2606, logger=logger)
-    trainer = Trainer(accelerator='gpu', devices="0, 1", logger=logger, max_epochs=40, 
+    trainer = Trainer(accelerator='gpu', devices="0, 1", logger=logger, max_epochs=1, 
                       log_every_n_steps=1, callbacks=[checkpoint_callback])
 
-    trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=valid_dataloader)
-    # trainer.validate(model=model, dataloaders=valid_dataloaders)
+    learning_rate = 0.001
+    
+    model = TemporalFusionTransformer.from_dataset(
+    train_dataset_with_covariates,
+    learning_rate=learning_rate,
+    # # lstm_layers=2,
+    # hidden_size=16,
+    # attention_head_size=4,
+    # dropout=0.1,
+    # hidden_continuous_size=8,
+    # output_size=7,  # 7 quantiles by default
+    # loss=RMSE(),
+    loss=QuantileLoss(),
+    # log_interval=10,  # uncomment for learning rate finder and otherwise, e.g. to 10 for logging every 10 batches
+    # reduce_on_plateau_patience=4,
+    )
+    
+    for ii in range(0,2):
+        
+        print('cycle:',ii, model.hparams.learning_rate)
+        
+        if ii == 1:
+            model.hparams.learning_rate = model.hparams.learning_rate / 10.0
+            
+        print("model.hparams.learning_rate:", model.hparams.learning_rate)
 
-    # torch.multiprocessing.set_start_method('spawn') 
+        trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=valid_dataloader)
+        
+        print("end fit:", ii)
+    
+    trainer.save_checkpoint(f"tft_best_model_{exp_name}.ckpt")
+    best_tft = TemporalFusionTransformer.load_from_checkpoint(f"tft_best_model_{exp_name}.ckpt")
+    
+    # calcualte mean absolute error on validation set
+    actuals = torch.cat([y[0] for x, y in iter(valid_dataloader)])
+    predictions = best_tft.predict(valid_dataloader)
+    (actuals - predictions).abs().mean()
+    
+    X = [X for X in range(0, actuals.shape[0])]
+
+    fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(20,5))
+
+    ax1.plot(X, actuals, color='b', label="Actual")
+    ax1.plot(X, predictions, color='r', label="Predicted")
+    ax1.set_title(logger_name)
+
+    files = os.path.join(home_dir, f'TFT{batch_size}_{exp_name}.png')
+    plt.savefig(files, bbox_inches='tight')
+    plt.show()
+    
+    X = [X for X in range(0, actuals.shape[0])]
+    X = [X for X in range(1, 21)]
+
+    fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(20,5))
+
+    outs = int( actuals.shape[0] / 20 )
+
+    act = []
+    pred = []
+    for ii in range(0,outs*20,outs):
+        act.append(actuals[ii:ii+outs].mean())
+        pred.append(predictions[ii:ii+outs].mean())
+
+    ax1.plot(X, np.asarray(act), 'bo', label="Actual")
+    ax1.plot(X, np.asarray(pred), 'ro', label="Predicted")
+    leg = plt.legend(loc='upper center')
+    plt.xticks(X)
+    ax1.set_ylim([0, 1])
+    plt.xlabel("counties")
+    plt.ylabel("Yield")
+    ax1.set_title("Corn yield predictions for 2018 with Temporal Fusion Transformer")
+
+    files = os.path.join(home_dir, f'TFT{batch_size}_corn_yield_{exp_name}.png')
+    plt.savefig(files, bbox_inches='tight')
+    plt.show()
+    
+    X = [X for X in range(0, actuals.shape[0])]
+    X = [X for X in range(1, 21)]
+
+    fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(20,5))
+
+    act = []
+    pred = []
+    for ii in range(0,outs*20,outs):
+        act.append(actuals[ii:ii+outs].mean())
+        pred.append(predictions[ii:ii+outs].mean())
+
+    ax1.plot(X, (1-np.abs(np.asarray(act)-np.asarray(pred))) * 100, 'bo', label="Actual")
+    # ax1.plot(X, np.asarray(pred), 'r.', label="Predicted")
+    ax1.set_ylim([70, 105])
+    plt.xticks(X)
+    plt.xlabel("counties")
+    plt.ylabel("Yild Accuracy")
+    ax1.set_title("ACCURACY for Temporal Fusion Transformer for 2018 year for corn yield predict") # + logger_name)
+
+    files = os.path.join(home_dir, f'TFT{batch_size}_corn_accuracy_{exp_name}.png')
+    plt.savefig(files, bbox_inches='tight')
+    plt.show()
+    
+    sys.exit(0)
     
 
 if __name__ == "__main__":
     
     freeze_support()
+    warnings.filterwarnings("ignore")
     
     main()
     

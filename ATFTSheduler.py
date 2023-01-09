@@ -15,6 +15,7 @@ import pandas as pd
 
 import os
 import warnings
+import sys
 
 # warnings.filterwarnings("ignore")  # avoid printing out absolute paths
 
@@ -52,6 +53,8 @@ from multiprocessing import Pool, freeze_support
 from pytorch_lightning.callbacks import LearningRateFinder
 from pytorch_lightning.callbacks import BackboneFinetuning
 
+from pytorch_lightning.callbacks import LearningRateMonitor
+
 class FineTuneLearningRateFinder(LearningRateFinder):
     def __init__(self, milestones, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -61,8 +64,17 @@ class FineTuneLearningRateFinder(LearningRateFinder):
         return
 
     def on_train_epoch_start(self, trainer, pl_module):
-        if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
-            self.lr_find(trainer, pl_module)
+        if trainer.current_epoch == 0:
+            self.lr = 0.001
+            self.learning_rate = 0.001
+            print("epoch 0: lr=0.001")
+            print(self.model.hparams)
+            sys.exit(0)
+        if trainer.current_epoch in self.milestones: 
+            self.lr = self.lr / 10.0
+            self.learning_rate = self.learning_rate / 10
+            print(f"epoch {trainer.current_epoch}: lr={self.learning_rate}")
+            # self.lr_find(trainer, pl_module)
 
 def main():
     
@@ -132,9 +144,9 @@ def main():
     train_data = data[ data["years"] != "2018" ]
     valid_data = data[ data["years"] == "2018" ]
 
-    bins_name = list()   #list(["yield"])
-    for bin in range(0, 512):
-        bins_name.append(f'bin{bin}')
+    # bins_name = list()   #list(["yield"])
+    # for bin in range(0, 512):
+    #     bins_name.append(f'bin{bin}')
 
     # print(bins_name)
 
@@ -199,22 +211,24 @@ def main():
     )
 
     # convert datasets to dataloaders for training
-    batch_size = 64
+    batch_size = 60
     train_dataloader = train_dataset_with_covariates.to_dataloader(train=True,  batch_size=batch_size, num_workers=2)
     valid_dataloader = valid_dataset_with_covariates.to_dataloader(train=False, batch_size=batch_size, num_workers=2)
 
-    exp_name = "2GPUs"
+    exp_name = "Sheduller"
 
-    logger_name = f"TFT-exp:{exp_name}-batch_size={batch_size}-encoder_length={encoder_length}-group={group}-known_reals={known_reals}"
+    logger_name = f"TFT:{exp_name}-batch_size={batch_size}-encoder_length={encoder_length}-group={group}-known_reals={known_reals}"
 
-    checkpoint_callback = ModelCheckpoint(dirpath='/hy-tmp/chck/'+logger_name, every_n_train_steps=1)
+    checkpoint_callback = ModelCheckpoint(dirpath='/hy-tmp/chck/'+logger_name, every_n_epochs=1)
 
     callbacks=[checkpoint_callback]
 
     logger = TensorBoardLogger('/tf_logs', name=logger_name)
     
-    backbone_finetuning = BackboneFinetuning(unfreeze_backbone_at_epoch=2, backbone_initial_ratio_lr=10.0, \
-                                             backbone_initial_lr=0.001)
+    # backbone_finetuning = BackboneFinetuning(unfreeze_backbone_at_epoch=1) #, backbone_initial_ratio_lr=10.0, \
+    #                                          # backbone_initial_lr=0.001)
+    
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
     
 # >>> trainer = Trainer(callbacks=[backbone_finetuning])
 
@@ -222,19 +236,22 @@ def main():
     # trainer.fit(...)
 
     # trainer = Trainer(gpus=1, max_epochs=100, limit_train_batches=2606, logger=logger)
-    print("Start trainer3")
-    trainer = Trainer(accelerator='gpu', devices="0, 1", logger=logger, max_epochs=60, 
-                      log_every_n_steps=1, callbacks=[checkpoint_callback, FineTuneLearningRateFinder(milestones=(40, 50))])
+    print("Start trainer5")
+    trainer = Trainer(accelerator='gpu', devices="0, 1", logger=logger, max_epochs=3, \
+                      log_every_n_steps=1, callbacks=[checkpoint_callback, lr_monitor,\
+                                                      FineTuneLearningRateFinder(milestones=(1,2))])
 
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=valid_dataloader)
     # trainer.validate(model=model, dataloaders=valid_dataloaders)
 
     # torch.multiprocessing.set_start_method('spawn') 
     
+    sys.exit(0)
 
 if __name__ == "__main__":
     
     freeze_support()
+    warnings.filterwarnings("ignore")
     
     main()
     
