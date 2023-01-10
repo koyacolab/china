@@ -183,10 +183,12 @@ def main():
     checkpoint_callback = ModelCheckpoint(dirpath='/hy-tmp/chck/'+logger_name, every_n_epochs=1)
 
     logger = TensorBoardLogger('/tf_logs', name=logger_name)
+    
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
 
     # trainer = Trainer(gpus=1, max_epochs=100, limit_train_batches=2606, logger=logger)
-    trainer = Trainer(accelerator='gpu', devices="0, 1", logger=logger, max_epochs=1, 
-                      log_every_n_steps=1, callbacks=[checkpoint_callback])
+    trainer = Trainer(accelerator='gpu', devices="0, 1", logger=logger, max_epochs=20, 
+                      log_every_n_steps=1, callbacks=[checkpoint_callback, lr_monitor])    #, fast_dev_run=True)
 
     learning_rate = 0.001
     
@@ -210,6 +212,7 @@ def main():
         print('new cycle:', ii, model.hparams.learning_rate)
         
         if ii == 1:
+            # model = TemporalFusionTransformer.load_from_checkpoint(f"tft_best_model_{exp_name}.ckpt")
             model.hparams.learning_rate = model.hparams.learning_rate / 10.0
             
         print("model.hparams.learning_rate:", model.hparams.learning_rate)
@@ -218,11 +221,15 @@ def main():
         
         print("end fit:", ii)
     
-        trainer.save_checkpoint(f"tft_best_model_{exp_name}.ckpt")
-        best_tft = TemporalFusionTransformer.load_from_checkpoint(f"tft_best_model_{exp_name}.ckpt")
+        # trainer.save_checkpoint(f"tft_best_model_{exp_name}.ckpt")
+        # best_tft = TemporalFusionTransformer.load_from_checkpoint(f"tft_best_model_{exp_name}.ckpt")
         
         print("end of cycle")
-    
+
+    trainer.save_checkpoint(f"tft_best_model_{exp_name}.ckpt")
+    best_tft = TemporalFusionTransformer.load_from_checkpoint(f"tft_best_model_{exp_name}.ckpt")
+    print("CheckPoint")
+        
     # calcualte mean absolute error on validation set
     actuals = torch.cat([y[0] for x, y in iter(valid_dataloader)])
     predictions = best_tft.predict(valid_dataloader)

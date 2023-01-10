@@ -188,7 +188,7 @@ def main():
     )
 
     # convert datasets to dataloaders for training
-    batch_size = 60
+    batch_size = 42
     train_dataloader = train_dataset_with_covariates.to_dataloader(train=True,  batch_size=batch_size, num_workers=4)
     valid_dataloader = valid_dataset_with_covariates.to_dataloader(train=False, batch_size=batch_size, num_workers=4)
 
