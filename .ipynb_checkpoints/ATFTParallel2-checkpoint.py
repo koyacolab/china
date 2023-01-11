@@ -117,8 +117,9 @@ def main():
     data['county'] = data['county'].astype(str)
     data['time_idx'] = data['time_idx'].astype(np.int64)
     # create the dataset from the pandas dataframe
-    train_data = data[ data["years"] != "2014" ]
-    valid_data = data[ data["years"] == "2014" ]
+    predicted_year = "2010"
+    train_data = data[ data["years"] != predicted_year ]
+    valid_data = data[ data["years"] == predicted_year ]
 
     # bins_name = list()   #list(["yield"])
     # for bin in range(0, 512):
@@ -126,7 +127,7 @@ def main():
 
     # print(bins_name)
 
-    bins_name = ["sownareas"]   #list()
+    bins_name = ["sownareas", "yieldvals", "yield"]   #list()
     for band in tqdm(range(0, 9)):
         for bins in range(0, 512):
             bins_name.append( f'band_{band}_{bins}' )
@@ -188,13 +189,13 @@ def main():
     )
 
     # convert datasets to dataloaders for training
-    batch_size = 60
+    batch_size = 32
     train_dataloader = train_dataset_with_covariates.to_dataloader(train=True,  batch_size=batch_size, num_workers=4)
     valid_dataloader = valid_dataset_with_covariates.to_dataloader(train=False, batch_size=batch_size, num_workers=4)
 
     exp_name = "reduce_on_plateau_patience=4"
 
-    logger_name = f"ATFTParallel2:{exp_name}-batch_size={batch_size}-encoder_length={encoder_length}-group={group}-known_reals={known_reals}"
+    logger_name = f"ATFTParallel2_{predicted_year}:{exp_name}-batch_size={batch_size}-encoder_length={encoder_length}-group={group}-known_reals={known_reals}"
 
     checkpoint_callback = ModelCheckpoint(dirpath='/hy-tmp/chck/'+logger_name, every_n_epochs=1)
 
@@ -215,7 +216,7 @@ def main():
     # (given that we use early stopping, this is not necessarily the last epoch)
     # best_model_path = trainer.checkpoint_callback.best_model_path
     # best_tft = TemporalFusionTransformer.load_from_checkpoint(best_model_path)
-    chkfile = os.path.join(home_dir, f"tft_best_model_{exp_name}.ckpt")
+    chkfile = os.path.join(home_dir, f"tft2_best_model_{exp_name}.ckpt")
     trainer.save_checkpoint(chkfile)
     best_tft = TemporalFusionTransformer.load_from_checkpoint(chkfile)
 
@@ -235,7 +236,7 @@ def main():
     ax1.plot(X, predictions, color='r', label="Predicted")
     ax1.set_title(logger_name)
 
-    files = os.path.join(home_dir, f'TFT{batch_size}_{exp_name}.png')
+    files = os.path.join(home_dir, f'TFT2{batch_size}_{exp_name}.png')
     plt.savefig(files, bbox_inches='tight')
     # plt.show()
 
@@ -259,9 +260,9 @@ def main():
     ax1.set_ylim([0, 1])
     plt.xlabel("counties")
     plt.ylabel("Yield")
-    ax1.set_title("Corn yield predictions for 2018 with Temporal Fusion Transformer")
+    ax1.set_title(f"Corn yield predictions for {predicted_year} with Temporal Fusion Transformer")
 
-    files = os.path.join(home_dir, f'TFT{batch_size}_corn_yield_{exp_name}.png')
+    files = os.path.join(home_dir, f'TFT2{batch_size}_corn_yield_{exp_name}.png')
     plt.savefig(files, bbox_inches='tight')
     # plt.show()
 
@@ -282,9 +283,9 @@ def main():
     plt.xticks(X)
     plt.xlabel("counties")
     plt.ylabel("Yild Accuracy")
-    ax1.set_title("ACCURACY for Temporal Fusion Transformer for 2018 year for corn yield predict") # + logger_name)
+    ax1.set_title(f"ACCURACY for Temporal Fusion Transformer for {predicted_year} year for corn yield predict") # + logger_name)
 
-    files = os.path.join(home_dir, f'TFT{batch_size}_corn_accuracy_{exp_name}.png')
+    files = os.path.join(home_dir, f'TFT2{batch_size}_corn_accuracy_{exp_name}.png')
     plt.savefig(files, bbox_inches='tight')
     # plt.show()
     

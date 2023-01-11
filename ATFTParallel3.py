@@ -195,7 +195,7 @@ def main():
 
     exp_name = "reduce_on_plateau_patience=4"
 
-    logger_name = f"ATFTParallel2_{predicted_year}:{exp_name}-batch_size={batch_size}-encoder_length={encoder_length}-group={group}-known_reals={known_reals}"
+    logger_name = f"ATFTParallel3_{predicted_year}:{exp_name}-batch_size={batch_size}-encoder_length={encoder_length}-group={group}-known_reals={known_reals}"
 
     checkpoint_callback = ModelCheckpoint(dirpath='/hy-tmp/chck/'+logger_name, every_n_epochs=1)
 
@@ -216,7 +216,7 @@ def main():
     # (given that we use early stopping, this is not necessarily the last epoch)
     # best_model_path = trainer.checkpoint_callback.best_model_path
     # best_tft = TemporalFusionTransformer.load_from_checkpoint(best_model_path)
-    chkfile = os.path.join(home_dir, f"tft2_best_model_{exp_name}.ckpt")
+    chkfile = os.path.join(home_dir, f"tft3_best_model_{exp_name}.ckpt")
     trainer.save_checkpoint(chkfile)
     best_tft = TemporalFusionTransformer.load_from_checkpoint(chkfile)
 
@@ -236,7 +236,7 @@ def main():
     ax1.plot(X, predictions, color='r', label="Predicted")
     ax1.set_title(logger_name)
 
-    files = os.path.join(home_dir, f'TFT2{batch_size}_{exp_name}.png')
+    files = os.path.join(home_dir, f'TFT3{batch_size}_{exp_name}.png')
     plt.savefig(files, bbox_inches='tight')
     # plt.show()
 
@@ -262,7 +262,7 @@ def main():
     plt.ylabel("Yield")
     ax1.set_title(f"Corn yield predictions for {predicted_year} with Temporal Fusion Transformer")
 
-    files = os.path.join(home_dir, f'TFT2{batch_size}_corn_yield_{exp_name}.png')
+    files = os.path.join(home_dir, f'TFT3{batch_size}_corn_yield_{exp_name}.png')
     plt.savefig(files, bbox_inches='tight')
     # plt.show()
 
@@ -285,7 +285,7 @@ def main():
     plt.ylabel("Yild Accuracy")
     ax1.set_title(f"ACCURACY for Temporal Fusion Transformer for {predicted_year} year for corn yield predict") # + logger_name)
 
-    files = os.path.join(home_dir, f'TFT2{batch_size}_corn_accuracy_{exp_name}.png')
+    files = os.path.join(home_dir, f'TFT3{batch_size}_corn_accuracy_{exp_name}.png')
     plt.savefig(files, bbox_inches='tight')
     # plt.show()
     

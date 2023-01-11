@@ -116,8 +116,10 @@ def main():
     data['county'] = data['county'].astype(str)
     data['time_idx'] = data['time_idx'].astype(np.int64)
     # create the dataset from the pandas dataframe
-    train_data = data[ data["years"] != "2016" ]
-    valid_data = data[ data["years"] == "2016" ]
+    
+    predicted_year = "2010"
+    train_data = data[ data["years"] != predicted_year ]
+    valid_data = data[ data["years"] == predicted_year ]
 
     # bins_name = list()   #list(["yield"])
     # for bin in range(0, 512):
@@ -125,7 +127,7 @@ def main():
 
     # print(bins_name)
 
-    bins_name = ["sownareas"]   #list()
+    bins_name = ["sownareas", "yieldvals", "yield"]   #list()
     for band in tqdm(range(0, 9)):
         for bins in range(0, 512):
             bins_name.append( f'band_{band}_{bins}' )
@@ -172,13 +174,13 @@ def main():
     )
     
     # convert datasets to dataloaders for training
-    batch_size = 64
-    train_dataloader = train_dataset_with_covariates.to_dataloader(train=True,  batch_size=batch_size, num_workers=2)
-    valid_dataloader = valid_dataset_with_covariates.to_dataloader(train=False, batch_size=batch_size, num_workers=2)
+    batch_size = 32
+    train_dataloader = train_dataset_with_covariates.to_dataloader(train=True,  batch_size=batch_size, num_workers=4)
+    valid_dataloader = valid_dataset_with_covariates.to_dataloader(train=False, batch_size=batch_size, num_workers=4)
     
-    exp_name = "tcycle_lr"  
+    exp_name = f"cycle_{predicted_year}"  
 
-    logger_name = f"TFTParallel:{exp_name}-batch_size={batch_size}-encoder_length={encoder_length}-group={group}-known_reals={known_reals}"
+    logger_name = f"TFTParallel_{predicted_year}:{exp_name}-batch_size={batch_size}-encoder_length={encoder_length}-group={group}-known_reals={known_reals}"
 
     checkpoint_callback = ModelCheckpoint(dirpath='/hy-tmp/chck/'+logger_name, every_n_epochs=1)
 
@@ -187,7 +189,7 @@ def main():
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
 
     # trainer = Trainer(gpus=1, max_epochs=100, limit_train_batches=2606, logger=logger)
-    trainer = Trainer(accelerator='gpu', devices="0, 1", logger=logger, max_epochs=20, 
+    trainer = Trainer(accelerator='gpu', devices="0, 1", logger=logger, max_epochs=30, 
                       log_every_n_steps=1, callbacks=[checkpoint_callback, lr_monitor])    #, fast_dev_run=True)
 
     learning_rate = 0.001
@@ -211,9 +213,9 @@ def main():
         
         print('new cycle:', ii, model.hparams.learning_rate)
         
-        if ii == 1:
+        if ii > 0:
             # model = TemporalFusionTransformer.load_from_checkpoint(f"tft_best_model_{exp_name}.ckpt")
-            model.hparams.learning_rate = model.hparams.learning_rate / 10.0
+            model.hparams.learning_rate = model.hparams.learning_rate / 2.0
             
         print("model.hparams.learning_rate:", model.hparams.learning_rate)
 
@@ -267,7 +269,7 @@ def main():
     ax1.set_ylim([0, 1])
     plt.xlabel("counties")
     plt.ylabel("Yield")
-    ax1.set_title("Corn yield predictions for 2018 with Temporal Fusion Transformer")
+    ax1.set_title(f"Corn yield predictions for {predicted_year} with Temporal Fusion Transformer")
 
     files = os.path.join(home_dir, f'TFT{batch_size}_corn_yield_{exp_name}.png')
     plt.savefig(files, bbox_inches='tight')
@@ -290,7 +292,7 @@ def main():
     plt.xticks(X)
     plt.xlabel("counties")
     plt.ylabel("Yild Accuracy")
-    ax1.set_title("ACCURACY for Temporal Fusion Transformer for 2018 year for corn yield predict") # + logger_name)
+    ax1.set_title(f"ACCURACY for Temporal Fusion Transformer for {predicted_year} year for corn yield predict") # + logger_name)
 
     files = os.path.join(home_dir, f'TFT{batch_size}_corn_accuracy_{exp_name}.png')
     plt.savefig(files, bbox_inches='tight')
