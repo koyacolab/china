@@ -17,6 +17,8 @@ import os
 import warnings
 import sys
 
+import fire
+
 # warnings.filterwarnings("ignore")  # avoid printing out absolute paths
 
 # os.chdir("../../..")
@@ -55,12 +57,15 @@ class ModelBase:
                  datasetfile = 'corn_china_pandas_onebands.csv',
                  predicted_year = 2010,
                  exp_name = 'class',
+                 batch_size = 1
                 ):
     
         self.home_dir = '/hy-tmp'
         # os.chdir(home_dir)
         
         self.exp_name = exp_name
+        self.batch_size = batch_size
+        self.predicted_year = str(predicted_year)
 
         freeze_support()
         warnings.filterwarnings("ignore")
@@ -76,7 +81,7 @@ class ModelBase:
         mean_sownareas = []
         mean_yieldvals = []
         for county in list(data['county'].unique()):
-            df = self.data[ data['county'] ==  county]
+            df = data[ data['county'] ==  county]
             X = [X for X in range(0, len(df['sownareas']))]
 
             mean_sownarea = df['sownareas'].mean()
@@ -98,14 +103,13 @@ class ModelBase:
         data['years'] = data['years'].astype(str)
         data['county'] = data['county'].astype(str)
         data['time_idx'] = data['time_idx'].astype(np.int64)
+        
         # create the dataset from the pandas dataframe
-
-        self.predicted_year = str(predicted_year)
         train_data = data[ data["years"] != self.predicted_year ]
         valid_data = data[ data["years"] == self.predicted_year ]
         
 
-        bins_name = ["sownareas", "yieldvals", "yield"]   #list()
+        bins_name = list()  # ["sownareas", "yieldvals", "yield"]   #list()
         for band in tqdm(range(0, 9)):
             for bins in range(0, 512):
                 bins_name.append( f'band_{band}_{bins}' )
@@ -152,23 +156,24 @@ class ModelBase:
         )
 
         # convert datasets to dataloaders for training
-        self.batch_size = 32
-        self.train_dataloader = train_dataset_with_covariates.to_dataloader(train=True,  batch_size=batch_size, num_workers=4)
-        self.valid_dataloader = valid_dataset_with_covariates.to_dataloader(train=False, batch_size=batch_size, num_workers=4)
+        self.train_dataloader = train_dataset_with_covariates.to_dataloader(train=True,  batch_size=self.batch_size, num_workers=4)
+        self.valid_dataloader = valid_dataset_with_covariates.to_dataloader(train=False, batch_size=self.batch_size, num_workers=4)
 
         # exp_name = f"cycle_{predicted_year}"  
 
-        logger_name = f"TFTClass_{predicted_year}:{exp_name}-batch_size={batch_size}-encoder_length={encoder_length}-group={group}-known_reals={known_reals}"
+        logger_name = f"{self.exp_name}_{self.predicted_year}_batch_size={self.batch_size}"
+        
+        logger_comment = f"encoder_length={encoder_length}"
 
         checkpoint_callback = ModelCheckpoint(dirpath='/hy-tmp/chck/'+logger_name, every_n_epochs=1)
 
-        logger = TensorBoardLogger('/tf_logs', name=logger_name)
+        logger = TensorBoardLogger('/tf_logs', name=logger_name, comment=logger_comment)
 
         lr_monitor = LearningRateMonitor(logging_interval='epoch')
 
         # trainer = Trainer(gpus=1, max_epochs=100, limit_train_batches=2606, logger=logger)
         self.trainer = Trainer(accelerator='gpu', devices="0, 1", logger=logger, max_epochs=30, 
-                          log_every_n_steps=1, callbacks=[checkpoint_callback, lr_monitor])    #, fast_dev_run=True)
+                          log_every_n_steps=1, callbacks=[checkpoint_callback, lr_monitor], fast_dev_run=True)
 
         learning_rate = 0.001
 
@@ -225,7 +230,7 @@ class ModelBase:
         ax1.plot(X, predictions, color='r', label="Predicted")
         ax1.set_title(logger_name)
 
-        files = os.path.join(home_dir, f'TFT{self.batch_size}_{self.exp_name}.png')
+        files = os.path.join(home_dir, f'TFT_{self.predicted_year}_{self.exp_name}.png')
         plt.savefig(files, bbox_inches='tight')
         # plt.show()
     
@@ -251,7 +256,7 @@ class ModelBase:
         plt.ylabel("Yield")
         ax1.set_title(f"Corn yield predictions for {self.predicted_year} with Temporal Fusion Transformer")
 
-        files = os.path.join(home_dir, f'TFT{self.batch_size}_corn_yield_{self.exp_name}.png')
+        files = os.path.join(home_dir, f'TFT_{self.predicted_year}_corn_yield_{self.exp_name}.png')
         plt.savefig(files, bbox_inches='tight')
         # plt.show()
 
@@ -274,19 +279,26 @@ class ModelBase:
         plt.ylabel("Yild Accuracy")
         ax1.set_title(f"ACCURACY for Temporal Fusion Transformer for {self.predicted_year} year for corn yield predict") # + logger_name)
 
-        files = os.path.join(home_dir, f'TFT{self.batch_size}_corn_accuracy_{self.exp_name}.png')
+        files = os.path.join(home_dir, f'TFT_{self.predicted_year}_corn_accuracy_{self.exp_name}.png')
         plt.savefig(files, bbox_inches='tight')
         # plt.show()
 
-        sys.exit(0)
-    
+        # sys.exit(0)
+        
+class RunTask:
+    @staticmethod
+    def train_TFT():
+        model = ModelBase()
+        model.run()
 
 if __name__ == "__main__":
     
     freeze_support()
     warnings.filterwarnings("ignore")
     
-    main()
+    fire.Fire(RunTask)
+    
+    # main()
     
 
 

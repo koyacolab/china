@@ -127,7 +127,7 @@ def main():
 
     # print(bins_name)
 
-    bins_name = ["sownareas", "yieldvals", "yield"]   #list()
+    bins_name = list()  # ["sownareas", "yieldvals", "yield"]   #list()
     for band in tqdm(range(0, 9)):
         for bins in range(0, 512):
             bins_name.append( f'band_{band}_{bins}' )

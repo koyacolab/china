@@ -127,7 +127,7 @@ def main():
 
     # print(bins_name)
 
-    bins_name = ["sownareas", "yieldvals", "yield"]   #list()
+    bins_name = list()     # ["sownareas", "yieldvals", "yield"]   #list()
     for band in tqdm(range(0, 9)):
         for bins in range(0, 512):
             bins_name.append( f'band_{band}_{bins}' )
@@ -185,7 +185,7 @@ def main():
         learning_rate=0.001,
         loss=QuantileLoss(),
         # log_interval=10,  # uncomment for learning rate finder and otherwise, e.g. to 10 for logging every 10 batches
-        reduce_on_plateau_patience=4,
+        # reduce_on_plateau_patience=4,
     )
 
     # convert datasets to dataloaders for training
