@@ -57,7 +57,8 @@ class ModelBase:
                  datasetfile = 'corn_china_pandas_onebands.csv',
                  predicted_year = 2010,
                  exp_name = 'class',
-                 batch_size = 1
+                 batch_size = 1, 
+                 encoder_length = 20,
                 ):
     
         self.home_dir = '/hy-tmp'
@@ -66,6 +67,12 @@ class ModelBase:
         self.exp_name = exp_name
         self.batch_size = batch_size
         self.predicted_year = str(predicted_year)
+        
+        self.encoder_length = encoder_length
+        
+        # define Logger 
+        self.logger_name = f"{self.exp_name}_{self.predicted_year}_batch_size={self.batch_size}"      
+        self.logger_comment = f"encoder_length={encoder_length}"
 
         freeze_support()
         warnings.filterwarnings("ignore")
@@ -106,15 +113,12 @@ class ModelBase:
         
         # create the dataset from the pandas dataframe
         train_data = data[ data["years"] != self.predicted_year ]
-        valid_data = data[ data["years"] == self.predicted_year ]
-        
+        valid_data = data[ data["years"] == self.predicted_year ]        
 
         bins_name = list()  # ["sownareas", "yieldvals", "yield"]   #list()
         for band in tqdm(range(0, 9)):
             for bins in range(0, 512):
                 bins_name.append( f'band_{band}_{bins}' )
-
-        encoder_length = 20
 
         group = ["years", "county"]
         target = "yield"   #["sownareas", "yieldvals"]
@@ -161,13 +165,9 @@ class ModelBase:
 
         # exp_name = f"cycle_{predicted_year}"  
 
-        logger_name = f"{self.exp_name}_{self.predicted_year}_batch_size={self.batch_size}"
-        
-        logger_comment = f"encoder_length={encoder_length}"
+        checkpoint_callback = ModelCheckpoint(dirpath='/hy-tmp/chck/'+self.logger_name, every_n_epochs=1)
 
-        checkpoint_callback = ModelCheckpoint(dirpath='/hy-tmp/chck/'+logger_name, every_n_epochs=1)
-
-        logger = TensorBoardLogger('/tf_logs', name=logger_name, comment=logger_comment)
+        logger = TensorBoardLogger('/tf_logs', name=self.logger_name, comment=self.logger_comment)
 
         lr_monitor = LearningRateMonitor(logging_interval='epoch')
 
@@ -192,36 +192,21 @@ class ModelBase:
         # reduce_on_plateau_patience=4,
         )
         
-    def run(self, ):
-    
-        for ii in range(0,2):
-
-            print('new cycle:', ii, self.model.hparams.learning_rate)
-
-            if ii > 0:
-                # model = TemporalFusionTransformer.load_from_checkpoint(f"tft_best_model_{exp_name}.ckpt")
-                self.model.hparams.learning_rate = self.model.hparams.learning_rate / 2.0
-
-            print("model.hparams.learning_rate:", self.model.hparams.learning_rate)
-
-            self.trainer.fit(self.model, train_dataloaders=self.train_dataloader, val_dataloaders=self.valid_dataloader)
-
-            print("end fit:", ii)
-
-            # trainer.save_checkpoint(f"tft_best_model_{exp_name}.ckpt")
-            # best_tft = TemporalFusionTransformer.load_from_checkpoint(f"tft_best_model_{exp_name}.ckpt")
-
-            print("end of cycle")
-
-        self.trainer.save_checkpoint(f"tft_best_model_{self.exp_name}.ckpt")
-        best_tft = TemporalFusionTransformer.load_from_checkpoint(f"tft_best_model_{self.exp_name}.ckpt")
-        print("CheckPoint")
-
+        self.best_tft = []
+        self.checkpoint = f"model_{self.exp_name}.ckpt"
+        
+    def train(self,):
+        print('Train(): learning_rate', self.model.hparams.learning_rate)
+        self.trainer.fit(self.model, train_dataloaders=self.train_dataloader, val_dataloaders=self.valid_dataloader)
+        self.trainer.save_checkpoint(self.checkpoint)
+        self.best_tft = TemporalFusionTransformer.load_from_checkpoint(self.checkpoint)
+        
+    def predict(self,):
         # calcualte mean absolute error on validation set
         actuals = torch.cat([y[0] for x, y in iter(valid_dataloader)])
         predictions = best_tft.predict(valid_dataloader)
         (actuals - predictions).abs().mean()
-
+        
         X = [X for X in range(0, actuals.shape[0])]
 
         fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(20,5))
@@ -277,19 +262,18 @@ class ModelBase:
         plt.xticks(X)
         plt.xlabel("counties")
         plt.ylabel("Yild Accuracy")
-        ax1.set_title(f"ACCURACY for Temporal Fusion Transformer for {self.predicted_year} year for corn yield predict") # + logger_name)
+        ax1.set_title(f"ACCURACY for Temporal Fusion Transformer for {self.predicted_year} year for corn yield predict") 
 
         files = os.path.join(home_dir, f'TFT_{self.predicted_year}_corn_accuracy_{self.exp_name}.png')
         plt.savefig(files, bbox_inches='tight')
-        # plt.show()
-
-        # sys.exit(0)
+        
         
 class RunTask:
     @staticmethod
     def train_TFT():
         model = ModelBase()
-        model.run()
+        model.train()
+        model.predict()
 
 if __name__ == "__main__":
     
