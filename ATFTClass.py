@@ -56,14 +56,19 @@ class ModelBase:
                  home_dir = '/hy-tmp',
                  datasetfile = 'corn_china_pandas_onebands.csv',
                  predicted_year = 2010,
-                 exp_name = 'class',
                  batch_size = 1, 
                  encoder_length = 20,
+                 save_checkpoint = False,
+                 exp_name = '',
                 ):
     
         self.home_dir = '/hy-tmp'
         # os.chdir(home_dir)
         
+        if len(exp_name) == 0:
+            print("exp_name is not definite")
+            sys.exit(0)
+            
         self.exp_name = exp_name
         self.batch_size = batch_size
         self.predicted_year = str(predicted_year)
@@ -73,6 +78,8 @@ class ModelBase:
         # define Logger 
         self.logger_name = f"{self.exp_name}_{self.predicted_year}_batch_size={self.batch_size}"      
         self.logger_comment = f"encoder_length={encoder_length}"
+        
+        self.save_checkpoint = save_checkpoint
 
         freeze_support()
         warnings.filterwarnings("ignore")
@@ -198,8 +205,9 @@ class ModelBase:
     def train(self,):
         print('Train(): learning_rate', self.model.hparams.learning_rate)
         self.trainer.fit(self.model, train_dataloaders=self.train_dataloader, val_dataloaders=self.valid_dataloader)
-        self.trainer.save_checkpoint(self.checkpoint)
-        self.best_tft = TemporalFusionTransformer.load_from_checkpoint(self.checkpoint)
+        if self.save_checkpoint == True:
+            self.trainer.save_checkpoint(self.checkpoint)
+            self.best_tft = TemporalFusionTransformer.load_from_checkpoint(self.checkpoint)
         
     def predict(self,):
         # calcualte mean absolute error on validation set
